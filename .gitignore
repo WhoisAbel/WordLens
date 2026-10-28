@@ -1,0 +1,47 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Local config (SDK paths, machine-specific)
+local.properties
+
+# Signing & secrets - never commit
+*.jks
+*.keystore
+keystore.properties
+google-services.json
+*.pem
+.env
+
+# Android Studio / IntelliJ (IDE-generated, flips JDK/bytecode settings per machine)
+*.iml
+.idea/
+
+# Native build
+.externalNativeBuild/
+.cxx/
+
+# Build outputs & reports
+captures/
+*.apk
+*.aab
+*.ap_
+*.dex
+output-metadata.json
+**/release/
+**/lint-results*.*
+
+# Kotlin
+.kotlin/
+
+# Logs & crash dumps
+*.log
+hs_err_pid*
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Tooling output
+graphify-out/
