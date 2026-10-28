@@ -22,11 +22,14 @@ class A2uiSessionTest {
             do {
                 delay(20)
                 s = session.processor.activeSurfaces.value.filterIsInstance<A2uiCoreSurfaceModel>().firstOrNull()
-            } while (s == null || s.dataModel[A2uiDataPath("/text")] == null)
+            } while (s == null || s.dataModel[A2uiDataPath("/lines/1")] == null)
             s
         }
-        assertEquals("hello\nworld", surface.dataModel[A2uiDataPath("/text")])
-        assertEquals(setOf("root", "text"), (surface.componentRegistry as ComponentRegistry).components.keys)
+        assertEquals("world", surface.dataModel[A2uiDataPath("/lines/1")])
+        assertEquals(
+            setOf("root", "summary", "card0", "col0", "field0", "field1"),
+            (surface.componentRegistry as ComponentRegistry).components.keys,
+        )
         job.cancel()
     }
 }

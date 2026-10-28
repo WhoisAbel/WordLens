@@ -4,7 +4,11 @@ import androidx.a2ui.engine.model.A2uiCoreSurfaceModel
 import androidx.a2ui.model.protocol.A2uiDataPath
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -30,6 +34,22 @@ private fun Render(surface: A2uiCoreSurfaceModel, id: String, modifier: Modifier
         "Column" -> Column(modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
             (component.properties["children"] as? List<*>)?.forEach { Render(surface, it as String) }
         }
-        "Text" -> Text(resolve("text"), style = MaterialTheme.typography.bodyLarge, modifier = modifier)
+        "Card" -> Card(modifier.fillMaxWidth()) {
+            Render(surface, component.properties["child"] as String, Modifier.padding(12.dp))
+        }
+        "Text" -> Text(
+            resolve("text"),
+            style = if (component.properties["variant"] == "title") MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyLarge,
+            modifier = modifier,
+        )
+        "TextField" -> {
+            val path = (component.properties["value"] as? Map<*, *>)?.get("path") as? String
+            OutlinedTextField(
+                value = resolve("value"),
+                onValueChange = { if (path != null) surface.dataModel.update(A2uiDataPath(path), it) },
+                label = { Text(resolve("label")) },
+                modifier = modifier.fillMaxWidth(),
+            )
+        }
     }
 }
