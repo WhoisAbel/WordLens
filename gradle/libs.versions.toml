@@ -9,8 +9,13 @@ activityCompose = "1.8.0"
 kotlin = "2.2.10"
 composeBom = "2026.02.01"
 mlkitTextRecognition = "16.0.1"
+a2ui = "1.0.0-alpha02"
+serializationJson = "1.7.3"
 
 [libraries]
+a2ui-engine = { group = "androidx.a2ui", name = "a2ui-engine", version.ref = "a2ui" }
+a2ui-model = { group = "androidx.a2ui", name = "a2ui-model", version.ref = "a2ui" }
+kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "serializationJson" }
 mlkit-text-recognition = { group = "com.google.mlkit", name = "text-recognition", version.ref = "mlkitTextRecognition" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }

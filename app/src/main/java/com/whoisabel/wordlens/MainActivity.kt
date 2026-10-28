@@ -20,7 +20,9 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.a2ui.engine.model.A2uiCoreSurfaceModel
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -54,7 +56,7 @@ private sealed interface ScanState {
     data object Idle : ScanState
     data object Loading : ScanState
     data class Error(val message: String) : ScanState
-    data class Done(val blocks: Blocks) : ScanState
+    data object Done : ScanState
 }
 
 @Composable
@@ -65,12 +67,19 @@ private fun ScannerScreen(modifier: Modifier = Modifier) {
     }
     val context = LocalContext.current
     var state by remember { mutableStateOf<ScanState>(ScanState.Idle) }
+    val a2ui = remember { A2uiSession() }
+    LaunchedEffect(a2ui) { a2ui.run() }
+    val surface = a2ui.processor.activeSurfaces.collectAsState().value.filterIsInstance<A2uiCoreSurfaceModel>().firstOrNull()
     LaunchedEffect(imageUri) {
         val uri = imageUri ?: return@LaunchedEffect
         state = ScanState.Loading
         state = try {
             val blocks = scanText(context, uri)
-            if (blocks.isEmpty()) ScanState.Error("No text found in this image.") else ScanState.Done(blocks)
+            if (blocks.isEmpty()) ScanState.Error("No text found in this image.") else {
+                surface?.let { a2ui.send(deleteSurface(it.id)) }
+                buildA2uiMessages("scan-${System.nanoTime()}", blocks).forEach(a2ui::send)
+                ScanState.Done
+            }
         } catch (e: Exception) {
             if (e is CancellationException) throw e
             ScanState.Error("Text recognition failed: ${e.message}")
@@ -95,7 +104,7 @@ private fun ScannerScreen(modifier: Modifier = Modifier) {
             ScanState.Idle -> {}
             ScanState.Loading -> CircularProgressIndicator(Modifier.align(Alignment.CenterHorizontally))
             is ScanState.Error -> Text(s.message, color = MaterialTheme.colorScheme.error)
-            is ScanState.Done -> Text(s.blocks.joinToString("\n\n") { it.joinToString("\n") })
+            ScanState.Done -> surface?.let { A2uiSurface(it) }
         }
     }
 }
