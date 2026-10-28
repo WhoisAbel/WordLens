@@ -1,4 +1,4 @@
-package com.whoisabel.wordlens
+package com.whoisabel.wordlens.scan
 
 import android.content.Context
 import android.net.Uri

@@ -12,7 +12,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.whoisabel.wordlens.GradientButton
+import com.whoisabel.wordlens.ui.components.GradientButton
 import com.whoisabel.wordlens.a2ui.model.A2uiComponent
 
 /** Two-way binding: shows the value at its data model path and writes edits back to that path. */

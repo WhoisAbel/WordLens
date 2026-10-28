@@ -1,6 +1,6 @@
 package com.whoisabel.wordlens.a2ui.agent
 
-import com.whoisabel.wordlens.Blocks
+import com.whoisabel.wordlens.scan.Blocks
 import com.whoisabel.wordlens.a2ui.engine.WordLensCatalog
 import kotlinx.serialization.json.JsonObject
 

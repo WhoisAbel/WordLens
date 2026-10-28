@@ -1,6 +1,6 @@
 package com.whoisabel.wordlens.a2ui
 
-import com.whoisabel.wordlens.Blocks
+import com.whoisabel.wordlens.scan.Blocks
 import com.whoisabel.wordlens.a2ui.agent.COPY_EVENT
 import com.whoisabel.wordlens.a2ui.agent.buildA2uiMessages
 import com.whoisabel.wordlens.a2ui.agent.copyText
