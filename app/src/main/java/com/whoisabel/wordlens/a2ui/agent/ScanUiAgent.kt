@@ -9,10 +9,19 @@ import kotlinx.serialization.json.JsonObject
  * Plays the role of the A2UI *agent*: in a real app an LLM or server would send these messages.
  * Here they are generated locally from the ML Kit result.
  *
- * Generated layout (ids in quotes):
+ * The agent first analyzes the text ([TextInsights]) and then *chooses* components:
+ * a receipt gets a big total, a business card gets call / mail / link buttons, plain text gets neither.
+ *
+ * Generated layout (ids in quotes; [optional] parts depend on the text):
  *
  *   "root" Column
- *    ├ "header" Row ─ Icon "search", Text h3 "4 lines in 2 blocks"
+ *    ├ "header" Row ─ Icon (search | shoppingCart | person), Column ─ Text h3 summary, Text caption kind
+ *    ├ ["insights" Card → Column ─ Text h5 "Detected"
+ *    │     ├ ["total"]   Row ─ Icon "check", Column ─ caption "Total", Text h2 "42.50 EUR"
+ *    │     ├ ["date0"]   Row ─ Icon "calendarToday", Text
+ *    │     ├ ["phone0"]  Button default    → openUrl("tel:…")
+ *    │     ├ ["email0"]  Button default    → openUrl("mailto:…")
+ *    │     └ ["link0"]   Button borderless → openUrl("https://…")]
  *    └ "tabs" Tabs
  *       ├ Edit    → "editTab" Column
  *       │            ├ "card0" Card → Column ─ Row(Icon, caption) · Divider · TextField per line
@@ -30,12 +39,15 @@ fun copyText(context: Map<String, Any?>): String = context.toSortedMap().values.
 
 fun buildA2uiMessages(surfaceId: String, blocks: Blocks): List<String> {
     val lines = blocks.flatten()
+    val insights = TextInsights.analyze(lines)
     val components = buildList {
-        addAll(header(blocks))
+        addAll(header(blocks, insights))
+        if (!insights.isEmpty) addAll(insightsCard(insights))
         add(component("tabs", "Tabs", "tabs" to tabsOf("Edit" to "editTab", "Preview" to "previewCard")))
         addAll(editTab(blocks))
         addAll(previewTab(lines.size))
-        add(component("root", "Column", "children" to ids(listOf("header", "tabs"))))
+        val sections = listOf("header") + (if (insights.isEmpty) emptyList() else listOf("insights")) + "tabs"
+        add(component("root", "Column", "children" to ids(sections)))
     }
     return listOf(
         createSurface(surfaceId, WordLensCatalog.ID),
@@ -44,10 +56,73 @@ fun buildA2uiMessages(surfaceId: String, blocks: Blocks): List<String> {
     )
 }
 
-private fun header(blocks: Blocks) = listOf(
-    component("header", "Row", "align" to str("center"), "children" to ids(listOf("headerIcon", "summary"))),
-    component("headerIcon", "Icon", "name" to str("search")),
-    component("summary", "Text", "variant" to str("h3"), "text" to str("${blocks.sumOf { it.size }} lines in ${blocks.size} blocks")),
+private fun header(blocks: Blocks, insights: TextInsights): List<JsonObject> {
+    val (icon, kind) = when {
+        insights.total != null -> "shoppingCart" to "Looks like a receipt"
+        insights.hasContact -> "person" to "Looks like contact details"
+        else -> "search" to "Recognized text"
+    }
+    return listOf(
+        component("header", "Row", "align" to str("center"), "children" to ids(listOf("headerIcon", "headerText"))),
+        component("headerIcon", "Icon", "name" to str(icon)),
+        component("headerText", "Column", "children" to ids(listOf("summary", "kind"))),
+        component("summary", "Text", "variant" to str("h3"), "text" to str("${blocks.sumOf { it.size }} lines in ${blocks.size} blocks")),
+        component("kind", "Text", "variant" to str("caption"), "text" to str(kind)),
+    )
+}
+
+/** Only what was actually found gets a component, so different photos produce different UIs. */
+private fun insightsCard(insights: TextInsights): List<JsonObject> = buildList {
+    val rows = mutableListOf("insightsTitle")
+    add(component("insightsTitle", "Text", "variant" to str("h5"), "text" to str("Detected")))
+
+    insights.total?.let { amount ->
+        rows += "total"
+        add(component("total", "Row", "align" to str("center"), "children" to ids(listOf("totalIcon", "totalText"))))
+        add(component("totalIcon", "Icon", "name" to str("check")))
+        add(component("totalText", "Column", "children" to ids(listOf("totalLabel", "totalAmount"))))
+        add(component("totalLabel", "Text", "variant" to str("caption"), "text" to str("Total")))
+        add(component("totalAmount", "Text", "variant" to str("h2"), "text" to str(amount)))
+    }
+    insights.dates.forEachIndexed { i, date ->
+        rows += "date$i"
+        addAll(iconRow("date$i", "calendarToday", date))
+    }
+    insights.phones.forEachIndexed { i, phone ->
+        rows += "phone$i"
+        addAll(openUrlButton("phone$i", "call", phone, "tel:" + phone.filter { it.isDigit() || it == '+' }))
+    }
+    insights.emails.forEachIndexed { i, email ->
+        rows += "email$i"
+        addAll(openUrlButton("email$i", "mail", email, "mailto:$email"))
+    }
+    insights.links.forEachIndexed { i, link ->
+        rows += "link$i"
+        val url = if (link.startsWith("http", ignoreCase = true)) link else "https://$link"
+        addAll(openUrlButton("link$i", "arrowForward", link, url, variant = "borderless"))
+    }
+    add(component("insights", "Card", "child" to str("insightsColumn")))
+    add(component("insightsColumn", "Column", "children" to ids(rows)))
+}
+
+private fun iconRow(id: String, icon: String, text: String) = listOf(
+    component(id, "Row", "align" to str("center"), "children" to ids(listOf("${id}Icon", "${id}Text"))),
+    component("${id}Icon", "Icon", "name" to str(icon)),
+    component("${id}Text", "Text", "text" to str(text)),
+)
+
+/**
+ * A button whose action is a client-side *function call* rather than an event:
+ * the engine runs the catalog's `openUrl` function directly, no agent round trip.
+ */
+private fun openUrlButton(id: String, icon: String, label: String, url: String, variant: String = "default") = listOf(
+    component(
+        id, "Button", "variant" to str(variant), "child" to str("${id}Content"),
+        "action" to obj("functionCall" to obj("call" to str("openUrl"), "args" to obj("url" to str(url)))),
+    ),
+    component("${id}Content", "Row", "justify" to str("center"), "children" to ids(listOf("${id}Icon", "${id}Text"))),
+    component("${id}Icon", "Icon", "name" to str(icon)),
+    component("${id}Text", "Text", "text" to str(label)),
 )
 
 /** One Card per ML Kit block, each with a TextField per line, then the Copy all button. */

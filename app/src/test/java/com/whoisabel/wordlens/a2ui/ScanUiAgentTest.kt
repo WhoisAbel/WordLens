@@ -38,7 +38,7 @@ class ScanUiAgentTest {
 
     @Test
     fun everyReferencedChildExists() {
-        val components = components(listOf(listOf("a", "b"), listOf("c")))
+        val components = components(listOf(listOf("a", "Total: 1.00 EUR"), listOf("01.02.2026", "+49 151 2345 6789", "a@b.io", "www.b.io")))
         val ids = components.map { it["id"]!!.jsonPrimitive.content }.toSet()
         val referenced = components.flatMap { c ->
             listOfNotNull(c["child"]?.jsonPrimitive?.content) +
@@ -61,5 +61,34 @@ class ScanUiAgentTest {
 
         val lines = messages(blocks)[2]["updateDataModel"]!!.jsonObject["value"]!!.jsonObject["lines"]!!.jsonArray
         assertEquals(listOf("a", "b", "c"), lines.map { (it as JsonPrimitive).content })
+    }
+
+    private fun List<JsonObject>.byId(id: String) = single { it["id"]!!.jsonPrimitive.content == id }
+    private fun List<JsonObject>.hasId(id: String) = any { it["id"]!!.jsonPrimitive.content == id }
+
+    @Test
+    fun receiptGetsABigTotal() {
+        val components = components(listOf(listOf("INVOICE 2026-001"), listOf("Total: 42.50 EUR")))
+        val amount = components.byId("totalAmount")
+        assertEquals("h2", amount["variant"]!!.jsonPrimitive.content)
+        assertEquals("42.50 EUR", amount["text"]!!.jsonPrimitive.content)
+        assertEquals("Looks like a receipt", components.byId("kind")["text"]!!.jsonPrimitive.content)
+    }
+
+    @Test
+    fun businessCardGetsOpenUrlButtons() {
+        val components = components(listOf(listOf("Alex Morgan", "+49 151 2345 6789", "alex@wordlens.app")))
+        fun urlOf(id: String) = components.byId(id)["action"]!!.jsonObject["functionCall"]!!.jsonObject
+            .also { assertEquals("openUrl", it["call"]!!.jsonPrimitive.content) }["args"]!!.jsonObject["url"]!!.jsonPrimitive.content
+        assertEquals("tel:+4915123456789", urlOf("phone0"))
+        assertEquals("mailto:alex@wordlens.app", urlOf("email0"))
+        assertTrue(!components.hasId("total"))
+    }
+
+    @Test
+    fun plainTextHasNoInsightsCard() {
+        val components = components(listOf(listOf("The quick brown fox")))
+        assertTrue(!components.hasId("insights"))
+        assertEquals(listOf("header", "tabs"), components.byId("root")["children"]!!.jsonArray.map { it.jsonPrimitive.content })
     }
 }

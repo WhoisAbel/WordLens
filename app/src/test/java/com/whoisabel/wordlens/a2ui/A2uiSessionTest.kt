@@ -36,7 +36,11 @@ class A2uiSessionTest {
     fun engineAcceptsGeneratedMessages() = runBlocking(Dispatchers.Default) {
         val session = A2uiSession {}
         val job = launch { session.run() }
-        val messages = buildA2uiMessages("s1", listOf(listOf("hello", "world")))
+        // Rich input so every optional section (total, date, call/mail/link buttons) is generated and validated.
+        val messages = buildA2uiMessages(
+            "s1",
+            listOf(listOf("hello", "world"), listOf("Total: 9.99 EUR", "01.02.2026", "+49 151 2345 6789", "hi@wordlens.app", "www.wordlens.app")),
+        )
         messages.forEach(session::send)
 
         val surface = withTimeout(5_000) {
