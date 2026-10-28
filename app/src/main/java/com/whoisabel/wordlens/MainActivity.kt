@@ -17,7 +17,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -101,7 +104,7 @@ private fun ScannerScreen(modifier: Modifier = Modifier) {
     }
 
     Column(
-        modifier.fillMaxSize().padding(16.dp),
+        modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Button(
@@ -109,7 +112,7 @@ private fun ScannerScreen(modifier: Modifier = Modifier) {
             modifier = Modifier.fillMaxWidth(),
         ) { Text("Select image") }
         bitmap?.let {
-            Image(it.asImageBitmap(), contentDescription = "Selected image", contentScale = ContentScale.Fit)
+            Image(it.asImageBitmap(), contentDescription = "Selected image", contentScale = ContentScale.Fit, modifier = Modifier.fillMaxWidth().heightIn(max = 200.dp))
         }
         when (val s = state) {
             ScanState.Idle -> {}
