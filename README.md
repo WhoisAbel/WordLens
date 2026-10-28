@@ -37,7 +37,17 @@ Image → ML Kit → blocks & lines → A2UI messages → A2UI engine → Compos
    - a **Preview** tab,
    - and a **Copy all** button.
 
-The UI is not hard-coded. A photo with 3 text blocks gets 3 cards; a photo with 1 block gets 1.
+The UI is not hard-coded. **The agent reads the text and chooses components for it:**
+
+| You scan… | The generated UI gets… |
+|---|---|
+| a **receipt** ("Total: 7.30 EUR", "28.10.2026") | 🛒 header "Looks like a receipt", a big **h2 total**, a 📅 date row |
+| a **business card** (phone, email, website) | 👤 header "Looks like contact details", **📞 call** and **✉️ mail** buttons and a **→ link**. Tapping one opens the dialer, mail app or browser. |
+| **plain text** (a book page) | 🔍 header and the edit and preview tabs only |
+
+On top of that, a photo with 3 text blocks gets 3 cards, and one with 1 block gets 1.
+
+> **Try it:** photograph a business card or a shop receipt, or write a phone number, email or "Total: 12.00 EUR" on paper. Then scan a book page and compare.
 
 ```mermaid
 flowchart LR
@@ -65,10 +75,11 @@ scan/
 a2ui/
   agent/                          ── the SERVER side of A2UI (normally an LLM or backend)
     A2uiMessages.kt               JSON helpers: createSurface, updateComponents, updateDataModel…
+    TextInsights.kt               Finds totals, dates, phones, emails, links in the text
     ScanUiAgent.kt                Decides WHAT UI to show for a scan result
   engine/                         ── the CLIENT side: plugs our app into the official engine
     A2uiSession.kt                Owns the official parser and message processor
-    WordLensCatalog.kt            Which components exist, and the property schema of each
+    WordLensCatalog.kt            Which components and functions (openUrl) exist, with their schemas
     MapDataModel.kt               Where bound values live (Compose state)
     ComponentRegistry.kt          Where validated components live (Compose state)
     JsonElementReader.kt          Adapter that lets the official parser read JSON
@@ -145,11 +156,12 @@ The agent never sends code, only declarations. The client renders only component
 | Concept | What it is | In WordLens |
 |---|---|---|
 | **Surface** | An independent UI region with its own components and data. | One per scan, e.g. `scan-123456` |
-| **Catalog** | The list of component types the client supports, each with a JSON schema for its properties. | `WordLensCatalog`: 9 components |
+| **Catalog** | The list of component types the client supports, each with a JSON schema for its properties. | `WordLensCatalog`: 9 components + `openUrl` |
 | **Component** | `{"id": "...", "component": "Text", ...properties}`. Components form a **flat list**; parents reference children **by id**. | `ScanUiAgent` builds about 30 for a 4-line scan |
 | **Data model** | A JSON document attached to the surface. | `{"lines": ["INVOICE 2026-001", ...]}` |
 | **Binding** | A property value of `{"path": "/lines/0"}` means "read this from the data model". | Every field and preview line |
-| **Action** | What happens on interaction: an `event` sent to the agent, or a local `functionCall`. | Copy all sends the event `copy_all` |
+| **Action** | What happens on interaction: an `event` sent to the agent, or a local `functionCall`. | Copy all sends the event `copy_all`; call, mail and link buttons call `openUrl` |
+| **Function** | Client-side logic declared in the catalog that actions can call. | `openUrl`, implemented by the official library |
 
 ### The four message types (agent → client)
 
@@ -226,6 +238,30 @@ What to notice:
 Components describe **structure**; the data model holds **values**. To change the text without rebuilding the UI, an agent only sends `updateDataModel`.
 
 > Try it: in `ScanUiAgentTest`, print `buildA2uiMessages("s", listOf(listOf("hi")))` to see the real, complete JSON.
+
+### How the agent chooses components
+
+Before building anything, the agent runs `TextInsights.analyze(lines)`. It's a handful of regexes, standing in for the reasoning an LLM agent would do. Then it adds **only the components that fit**:
+
+```kotlin
+// agent/ScanUiAgent.kt
+val insights = TextInsights.analyze(lines)
+addAll(header(blocks, insights))                       // icon + "Looks like a receipt" / "contact details"
+if (!insights.isEmpty) addAll(insightsCard(insights))  // total, dates, call/mail/link buttons
+```
+
+For a business card, the "Detected" card contains:
+```json
+{"id": "phone0", "component": "Button", "variant": "default", "child": "phone0Content",
+ "action": {"functionCall": {"call": "openUrl", "args": {"url": "tel:+4915123456789"}}}},
+{"id": "phone0Content", "component": "Row", "justify": "center", "children": ["phone0Icon", "phone0Text"]},
+{"id": "phone0Icon", "component": "Icon", "name": "call"},
+{"id": "phone0Text", "component": "Text", "text": "+49 151 2345 6789"},
+{"id": "link0", "component": "Button", "variant": "borderless", "child": "link0Content",
+ "action": {"functionCall": {"call": "openUrl", "args": {"url": "https://www.wordlens.app"}}}}
+```
+
+This is the point of A2UI: **the same client code renders very different UIs**, because the agent decides the structure and the client only knows how to draw each building block.
 
 ---
 
@@ -321,6 +357,23 @@ Typing writes into the data model. Every component bound to that path recomposes
 
 In a networked app, step 4 would send the event to the agent. The agent could then reply with new `updateComponents` or `updateDataModel` messages.
 
+### Call / mail / link: action → local function
+Not every action needs the agent. A `functionCall` action runs a **catalog function on the client**:
+
+1. The button's action is `{"functionCall": {"call": "openUrl", "args": {"url": "tel:+49…"}}}`.
+2. `surface.dispatchAction(...)`: the engine looks up `openUrl` in `WordLensCatalog.functions`.
+3. That's the official `A2uiOpenUrlFunction`. It validates the args and calls our `A2uiUrlOpener`.
+4. `ScannerViewModel` implements the opener with an `ACTION_VIEW` intent, so Android picks the dialer, the mail app or the browser.
+
+| | `event` action | `functionCall` action |
+|---|---|---|
+| Goes to | the agent (`outboundEvents`) | a catalog function, on the client |
+| Example here | Copy all → `copy_all` | Call / mail / link → `openUrl` |
+| Use when | the agent should know or react | the client can do it alone |
+
+### Button variants
+The spec's `variant` is a hint the renderer interprets: `primary` → our gradient button (Copy all), `default` → outlined (call, mail), `borderless` → text button (link).
+
 ### Tabs: local UI state
 Which tab is selected is **not** in the data model. It's plain `rememberSaveable` state in `TabsRenderer`. Rule of thumb: what the agent should know about goes in the data model; purely visual state stays in the renderer.
 
@@ -380,11 +433,12 @@ Add a case to `A2uiComponentTest` for the typed model. `A2uiSessionTest.engineAc
 
 ## 10. Exercises
 
-1. **Copy only checked lines.** After §9, add `/include/<n>` to the Copy button's event context and filter in `copyText()`.
-2. **Streaming.** Send `updateComponents` once per block with a `delay(300)` between them, and watch the cards appear one by one. (The flat component list makes this possible.)
-3. **Agent reacts to events.** When `copy_all` arrives, have the ViewModel send `updateDataModel` to set a new `/status` path, and show it in a Text bound to `/status`.
-4. **Use word-level data.** Change `scanText` to also return ML Kit `Element`s, and render the words of each line as chips in a `Row`.
-5. **Confidence.** Show each line's `confidence` from ML Kit as a caption under its field.
+1. **Teach the agent something new.** Detect hashtags or IBANs in `TextInsights`, and give them their own component in `insightsCard`.
+2. **Copy only checked lines.** After §9, add `/include/<n>` to the Copy button's event context and filter in `copyText()`.
+3. **Streaming.** Send `updateComponents` once per block with a `delay(300)` between them, and watch the cards appear one by one. (The flat component list makes this possible.)
+4. **Agent reacts to events.** When `copy_all` arrives, have the ViewModel send `updateDataModel` to set a new `/status` path, and show it in a Text bound to `/status`.
+5. **Use word-level data.** Change `scanText` to also return ML Kit `Element`s, and render the words of each line as chips in a `Row`.
+6. **Confidence.** Show each line's `confidence` from ML Kit as a caption under its field.
 
 ---
 
@@ -400,9 +454,10 @@ Requirements: Android Studio (or JDK 17+ and the Android SDK), and a device or e
 
 | Test | What it proves |
 |---|---|
-| `ScanUiAgentTest` | The UI shape follows the text (cards = blocks, fields = lines). Every referenced child id exists. Fields and preview bind to the same paths. |
+| `ScanUiAgentTest` | The UI shape follows the text (cards = blocks, fields = lines). Every referenced child id exists. Fields and preview bind to the same paths. Receipts get an h2 total, cards get `openUrl` buttons, and plain text gets no insights card. |
 | `A2uiComponentTest` | Payloads become the right typed models. |
-| `A2uiSessionTest` | The **real engine** accepts every generated component, and an edit made in the data model reaches the `copy_all` event. |
+| `TextInsightsTest` | A receipt, a business card and plain text are each recognized correctly; an invoice number is not mistaken for a phone number. |
+| `A2uiSessionTest` | The **real engine** accepts every generated component, including the optional ones. An edit reaches the `copy_all` event, and a `functionCall` button runs `openUrl` on the client. |
 
 ---
 
@@ -426,6 +481,10 @@ The history is meant to be read step by step: `git log --reverse --oneline`.
 | refactor: move scan logic to ScannerViewModel and split screen sections | Thin Activity, rotation-safe state |
 | feat: render Row, Icon, Divider and Tabs | More basic-catalog components, Edit/Preview tabs |
 | docs: add step-by-step ML Kit and A2UI tutorial to README | This tutorial |
+| feat: detect totals, dates and contact details in recognized text | `TextInsights` |
+| feat: support openUrl function calls and button variants | Client-side `functionCall` actions, primary/default/borderless |
+| feat: let the agent choose components based on detected content | Different photos → different UIs |
+| docs: explain the content-aware agent and functionCall actions | This update |
 
 ---
 
@@ -435,4 +494,5 @@ The history is meant to be read step by step: `git log --reverse --oneline`.
 - The Compose renderers are ours, not an official A2UI renderer. They cover 9 of the basic catalog's 18 components.
 - `MapDataModel` stores leaf values only: reading `/lines` as a whole list returns null. That's enough for leaf bindings like `/lines/0`.
 - `Icon` maps the spec names that exist in `material-icons-core`; any other name shows an info icon.
+- `TextInsights` uses regexes for common formats, not real language understanding. An LLM agent or ML Kit's Entity Extraction API would handle more cases.
 - Only Latin script is recognized. Other ML Kit models (Chinese, Devanagari, Japanese, Korean) are separate dependencies.
