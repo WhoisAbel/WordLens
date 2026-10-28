@@ -73,6 +73,7 @@ Requires Android Studio (or JDK 17+ and the Android SDK) and a device or emulato
 | feat: handle interactions from generated A2UI | Edit binding and Copy all event |
 | refactor: simplify and polish sample application | Scrolling and preview size |
 | docs: add README with integration explanation | This file |
+| feat: redesign UI with brand gradient and animations | Hero, onboarding steps, scan animation, styled A2UI cards, copy snackbar |
 
 ## Limitations
 - `androidx.a2ui` is alpha; the API may change.

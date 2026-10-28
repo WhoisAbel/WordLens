@@ -1,11 +1,14 @@
 package com.whoisabel.wordlens.ui.theme
 
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
-val Purple80 = Color(0xFFD0BCFF)
-val PurpleGrey80 = Color(0xFFCCC2DC)
-val Pink80 = Color(0xFFEFB8C8)
+val Indigo = Color(0xFF4F46E5)
+val Violet = Color(0xFF7C3AED)
+val Pink = Color(0xFFDB2777)
 
-val Purple40 = Color(0xFF6650a4)
-val PurpleGrey40 = Color(0xFF625b71)
-val Pink40 = Color(0xFF7D5260)
+val IndigoLight = Color(0xFFA5B4FC)
+val VioletLight = Color(0xFFC4B5FD)
+val PinkLight = Color(0xFFF9A8D4)
+
+val BrandGradient = Brush.linearGradient(listOf(Indigo, Violet, Pink))
