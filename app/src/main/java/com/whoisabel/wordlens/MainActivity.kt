@@ -95,6 +95,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.whoisabel.wordlens.a2ui.agent.COPY_EVENT
+import com.whoisabel.wordlens.a2ui.agent.buildA2uiMessages
+import com.whoisabel.wordlens.a2ui.agent.copyText
+import com.whoisabel.wordlens.a2ui.agent.deleteSurface
+import com.whoisabel.wordlens.a2ui.engine.A2uiSession
+import com.whoisabel.wordlens.a2ui.engine.ComponentRegistry
+import com.whoisabel.wordlens.a2ui.render.A2uiSurface
 import com.whoisabel.wordlens.ui.theme.BrandGradient
 import com.whoisabel.wordlens.ui.theme.Violet
 import com.whoisabel.wordlens.ui.theme.WordLensTheme

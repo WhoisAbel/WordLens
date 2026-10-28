@@ -1,4 +1,11 @@
-package com.whoisabel.wordlens
+package com.whoisabel.wordlens.a2ui
+
+import com.whoisabel.wordlens.Blocks
+import com.whoisabel.wordlens.a2ui.agent.COPY_EVENT
+import com.whoisabel.wordlens.a2ui.agent.buildA2uiMessages
+import com.whoisabel.wordlens.a2ui.agent.copyText
+import com.whoisabel.wordlens.a2ui.engine.A2uiSession
+import com.whoisabel.wordlens.a2ui.engine.ComponentRegistry
 
 import androidx.a2ui.engine.model.A2uiCoreSurfaceModel
 import androidx.a2ui.model.protocol.A2uiDataPath

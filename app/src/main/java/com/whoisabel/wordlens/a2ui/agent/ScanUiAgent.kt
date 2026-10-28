@@ -1,26 +1,18 @@
-package com.whoisabel.wordlens
+package com.whoisabel.wordlens.a2ui.agent
 
-import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonElement
+import com.whoisabel.wordlens.Blocks
+import com.whoisabel.wordlens.a2ui.engine.WordLensCatalog
 import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
+
+/*
+ * Plays the role of the A2UI *agent*: in a real app an LLM or server would send these messages.
+ * Here they are generated locally from the ML Kit result.
+ */
 
 const val COPY_EVENT = "copy_all"
 
 /** Joins the resolved event context (keys are zero-padded line numbers) back into text. */
 fun copyText(context: Map<String, Any?>): String = context.toSortedMap().values.joinToString("\n")
-
-private fun obj(vararg pairs: Pair<String, JsonElement>) = JsonObject(mapOf(*pairs))
-private fun str(s: String) = JsonPrimitive(s)
-private fun strs(s: List<String>) = JsonArray(s.map(::JsonPrimitive))
-private fun bound(path: String) = obj("path" to str(path))
-
-private fun envelope(key: String, body: JsonObject): String =
-    buildJsonObject { put("version", "v0.9"); put(key, body) }.toString()
-
-fun deleteSurface(surfaceId: String) = envelope("deleteSurface", obj("surfaceId" to str(surfaceId)))
 
 /**
  * ML Kit result -> A2UI v0.9 messages (createSurface, updateComponents, updateDataModel).
@@ -59,11 +51,8 @@ fun buildA2uiMessages(surfaceId: String, blocks: Blocks): List<String> {
     components += obj("id" to str("root"), "component" to str("Column"), "children" to strs(listOf("summary") + cardIds + "copy"))
 
     return listOf(
-        envelope("createSurface", obj("surfaceId" to str(surfaceId), "catalogId" to str(CATALOG_ID))),
-        envelope("updateComponents", obj("surfaceId" to str(surfaceId), "components" to JsonArray(components))),
-        envelope(
-            "updateDataModel",
-            obj("surfaceId" to str(surfaceId), "path" to str("/"), "value" to obj("lines" to strs(blocks.flatten()))),
-        ),
+        createSurface(surfaceId, WordLensCatalog.ID),
+        updateComponents(surfaceId, components),
+        updateDataModel(surfaceId, "/", obj("lines" to strs(blocks.flatten()))),
     )
 }

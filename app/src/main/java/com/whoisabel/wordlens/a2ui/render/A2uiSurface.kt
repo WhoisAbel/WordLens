@@ -1,4 +1,4 @@
-package com.whoisabel.wordlens
+package com.whoisabel.wordlens.a2ui.render
 
 import androidx.a2ui.engine.model.A2uiCoreSurfaceModel
 import androidx.a2ui.model.protocol.A2uiDataPath
@@ -27,6 +27,8 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.whoisabel.wordlens.GradientButton
+import com.whoisabel.wordlens.a2ui.engine.ComponentRegistry
 import com.whoisabel.wordlens.ui.theme.BrandGradient
 
 /**

@@ -1,4 +1,11 @@
-package com.whoisabel.wordlens
+package com.whoisabel.wordlens.a2ui
+
+import com.whoisabel.wordlens.Blocks
+import com.whoisabel.wordlens.a2ui.agent.COPY_EVENT
+import com.whoisabel.wordlens.a2ui.agent.buildA2uiMessages
+import com.whoisabel.wordlens.a2ui.agent.copyText
+import com.whoisabel.wordlens.a2ui.engine.A2uiSession
+import com.whoisabel.wordlens.a2ui.engine.ComponentRegistry
 
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonArray
@@ -8,7 +15,7 @@ import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-class A2uiBuilderTest {
+class ScanUiAgentTest {
     private fun components(blocks: Blocks): List<JsonObject> {
         val msgs = buildA2uiMessages("s", blocks).map { Json.parseToJsonElement(it).jsonObject }
         assertEquals(listOf("createSurface", "updateComponents", "updateDataModel"), msgs.map { (it.keys - "version").single() })
