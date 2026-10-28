@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -42,6 +43,13 @@ private fun Render(surface: A2uiCoreSurfaceModel, id: String, modifier: Modifier
             style = if (component.properties["variant"] == "title") MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyLarge,
             modifier = modifier,
         )
+        "Button" -> Button(
+            onClick = {
+                @Suppress("UNCHECKED_CAST")
+                surface.dispatchAction(id, component.properties["action"] as Map<String, Any?>)
+            },
+            modifier = modifier.fillMaxWidth(),
+        ) { Render(surface, component.properties["child"] as String) }
         "TextField" -> {
             val path = (component.properties["value"] as? Map<*, *>)?.get("path") as? String
             OutlinedTextField(

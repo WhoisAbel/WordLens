@@ -7,6 +7,11 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
+const val COPY_EVENT = "copy_all"
+
+/** Joins the resolved event context (keys are zero-padded line numbers) back into text. */
+fun copyText(context: Map<String, Any?>): String = context.toSortedMap().values.joinToString("\n")
+
 private fun obj(vararg pairs: Pair<String, JsonElement>) = JsonObject(mapOf(*pairs))
 private fun str(s: String) = JsonPrimitive(s)
 private fun strs(s: List<String>) = JsonArray(s.map(::JsonPrimitive))
@@ -44,7 +49,14 @@ fun buildA2uiMessages(surfaceId: String, blocks: Blocks): List<String> {
         "id" to str("summary"), "component" to str("Text"), "variant" to str("title"),
         "text" to str("$total lines in ${blocks.size} blocks"),
     )
-    components += obj("id" to str("root"), "component" to str("Column"), "children" to strs(listOf("summary") + cardIds))
+    // The event context binds every field, so the engine resolves the *edited* values when the button is pressed.
+    val context = JsonObject(List(total) { "%04d".format(it) to bound("/lines/$it") }.toMap())
+    components += obj("id" to str("copyLabel"), "component" to str("Text"), "text" to str("Copy all"))
+    components += obj(
+        "id" to str("copy"), "component" to str("Button"), "child" to str("copyLabel"),
+        "action" to obj("event" to obj("name" to str(COPY_EVENT), "context" to context)),
+    )
+    components += obj("id" to str("root"), "component" to str("Column"), "children" to strs(listOf("summary") + cardIds + "copy"))
 
     return listOf(
         envelope("createSurface", obj("surfaceId" to str(surfaceId), "catalogId" to str(CATALOG_ID))),

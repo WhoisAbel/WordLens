@@ -1,8 +1,11 @@
 package com.whoisabel.wordlens
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.graphics.ImageDecoder
 import android.net.Uri
 import android.os.Bundle
+import androidx.a2ui.model.protocol.A2uiClientEventMessage
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -65,10 +68,18 @@ private fun ScannerScreen(modifier: Modifier = Modifier) {
     val picker = rememberLauncherForActivityResult(PickVisualMedia()) { uri ->
         if (uri != null) imageUri = uri
     }
-    val context = LocalContext.current
     var state by remember { mutableStateOf<ScanState>(ScanState.Idle) }
+    val context = LocalContext.current
     val a2ui = remember { A2uiSession() }
     LaunchedEffect(a2ui) { a2ui.run() }
+    LaunchedEffect(a2ui) {
+        a2ui.processor.outboundEvents.collect { event ->
+            if (event is A2uiClientEventMessage && event.type == COPY_EVENT) {
+                val clipboard = context.getSystemService(ClipboardManager::class.java)
+                clipboard.setPrimaryClip(ClipData.newPlainText("WordLens", copyText(event.context)))
+            }
+        }
+    }
     val surface = a2ui.processor.activeSurfaces.collectAsState().value.filterIsInstance<A2uiCoreSurfaceModel>().firstOrNull()
     LaunchedEffect(imageUri) {
         val uri = imageUri ?: return@LaunchedEffect
