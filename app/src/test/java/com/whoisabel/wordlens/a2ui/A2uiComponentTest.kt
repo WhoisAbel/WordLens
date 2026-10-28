@@ -19,6 +19,16 @@ class A2uiComponentTest {
             A2uiComponent.from(A2uiComponentPayload("c", "Column", mapOf("children" to listOf("a", "b")))),
         )
         assertEquals(A2uiComponent.Text("t", "hi", "body"), A2uiComponent.from(A2uiComponentPayload("t", "Text", mapOf("text" to "hi"))))
+        assertEquals(
+            A2uiComponent.Tabs("tabs", listOf(A2uiComponent.Tabs.Tab("Edit", "editTab"))),
+            A2uiComponent.from(A2uiComponentPayload("tabs", "Tabs", mapOf("tabs" to listOf(mapOf("title" to "Edit", "child" to "editTab"))))),
+        )
+        assertEquals(
+            A2uiComponent.Row("r", listOf("i"), justify = "center", align = "center"),
+            A2uiComponent.from(A2uiComponentPayload("r", "Row", mapOf("children" to listOf("i"), "justify" to "center"))),
+        )
+        assertEquals(A2uiComponent.Icon("i", "search"), A2uiComponent.from(A2uiComponentPayload("i", "Icon", mapOf("name" to "search"))))
+        assertEquals(A2uiComponent.Divider("d", vertical = false), A2uiComponent.from(A2uiComponentPayload("d", "Divider", emptyMap())))
         assertEquals(A2uiComponent.Unknown("x", "Video"), A2uiComponent.from(A2uiComponentPayload("x", "Video", emptyMap())))
     }
 }

@@ -17,6 +17,10 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -25,7 +29,8 @@ class A2uiSessionTest {
     fun engineAcceptsGeneratedMessages() = runBlocking(Dispatchers.Default) {
         val session = A2uiSession()
         val job = launch { session.run() }
-        buildA2uiMessages("s1", listOf(listOf("hello", "world"))).forEach(session::send)
+        val messages = buildA2uiMessages("s1", listOf(listOf("hello", "world")))
+        messages.forEach(session::send)
 
         val surface = withTimeout(5_000) {
             var s: A2uiCoreSurfaceModel?
@@ -36,10 +41,11 @@ class A2uiSessionTest {
             s
         }
         assertEquals("world", surface.dataModel[A2uiDataPath("/lines/1")])
-        assertEquals(
-            setOf("root", "summary", "card0", "col0", "field0", "field1", "copy", "copyLabel"),
-            (surface.componentRegistry as ComponentRegistry).components.keys,
-        )
+        // The engine validates each component against the catalog and drops invalid ones,
+        // so every generated component reaching the registry proves the whole layout is valid.
+        val generated = Json.parseToJsonElement(messages[1]).jsonObject["updateComponents"]!!.jsonObject["components"]!!
+            .jsonArray.map { it.jsonObject["id"]!!.jsonPrimitive.content }.toSet()
+        assertEquals(generated, (surface.componentRegistry as ComponentRegistry).components.keys)
         job.cancel()
     }
 

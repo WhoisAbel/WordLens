@@ -29,8 +29,12 @@ internal fun RenderComponent(surface: A2uiCoreSurfaceModel, id: String, modifier
     // Exhaustive: adding a new A2uiComponent subtype fails compilation until it is rendered here.
     when (component) {
         is A2uiComponent.Column -> ColumnRenderer(surface, component, modifier)
+        is A2uiComponent.Row -> RowRenderer(surface, component, modifier)
         is A2uiComponent.Card -> CardRenderer(surface, component, modifier)
+        is A2uiComponent.Divider -> DividerRenderer(component, modifier)
+        is A2uiComponent.Tabs -> TabsRenderer(surface, component, modifier)
         is A2uiComponent.Text -> TextRenderer(surface, component, modifier)
+        is A2uiComponent.Icon -> IconRenderer(component, modifier)
         is A2uiComponent.TextField -> TextFieldRenderer(surface, component, modifier)
         is A2uiComponent.Button -> ButtonRenderer(surface, component, modifier)
         is A2uiComponent.Unknown -> Unit
