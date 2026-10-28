@@ -4,6 +4,8 @@ import androidx.a2ui.engine.catalog.A2uiCoreCatalog
 import androidx.a2ui.engine.catalog.A2uiCoreComponentDefinition
 import androidx.a2ui.engine.catalog.A2uiCoreComponentDefinitionCollection
 import androidx.a2ui.model.catalog.A2uiFunctionCollection
+import androidx.a2ui.model.catalog.functions.A2uiOpenUrlFunction
+import androidx.a2ui.model.catalog.functions.A2uiUrlOpener
 import androidx.a2ui.model.schema.A2uiArraySchema
 import androidx.a2ui.model.schema.A2uiObjectSchema
 import androidx.a2ui.model.schema.A2uiSchema
@@ -16,9 +18,14 @@ import androidx.a2ui.model.schema.commontypes.A2uiDynamicStringSchema
 /**
  * The catalog tells the engine which components exist and what properties each accepts.
  * Every incoming component is validated against these schemas before it reaches the UI.
+ *
+ * It also lists the client-side *functions* an action may call. We register the basic catalog's
+ * `openUrl`, implemented by the official library and backed by our [urlOpener].
  */
-object WordLensCatalog : A2uiCoreCatalog {
-    const val ID = "wordlens:catalog/v1"
+class WordLensCatalog(urlOpener: A2uiUrlOpener) : A2uiCoreCatalog {
+    companion object {
+        const val ID = "wordlens:catalog/v1"
+    }
 
     override val id = ID
     override val componentDefinitions = A2uiCoreComponentDefinitionCollection(
@@ -42,10 +49,14 @@ object WordLensCatalog : A2uiCoreCatalog {
             Component("Text", "Static or bound text", mapOf("text" to A2uiDynamicStringSchema.DEFAULT_INSTANCE, "variant" to A2uiStringSchema()), setOf("text")),
             // Input
             Component("TextField", "Editable text bound to the data model", mapOf("label" to A2uiDynamicStringSchema.DEFAULT_INSTANCE, "value" to A2uiDynamicStringSchema.DEFAULT_INSTANCE), setOf("value")),
-            Component("Button", "Fires an action", mapOf("child" to A2uiComponentIdSchema.DEFAULT_INSTANCE, "action" to A2uiActionSchema.DEFAULT_INSTANCE), setOf("child", "action")),
+            Component(
+                "Button", "Fires an action; variant is default, primary or borderless",
+                mapOf("child" to A2uiComponentIdSchema.DEFAULT_INSTANCE, "action" to A2uiActionSchema.DEFAULT_INSTANCE, "variant" to A2uiStringSchema()),
+                setOf("child", "action"),
+            ),
         )
     )
-    override val functions = A2uiFunctionCollection()
+    override val functions = A2uiFunctionCollection(listOf(A2uiOpenUrlFunction(urlOpener)))
 }
 
 private class Component(

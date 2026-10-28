@@ -77,7 +77,7 @@ private fun editTab(blocks: Blocks): List<JsonObject> = buildList {
 private fun copyButton(lineCount: Int): List<JsonObject> {
     val context = JsonObject(List(lineCount) { "%04d".format(it) to bound("/lines/$it") }.toMap())
     return listOf(
-        component("copy", "Button", "child" to str("copyContent"), "action" to obj("event" to obj("name" to str(COPY_EVENT), "context" to context))),
+        component("copy", "Button", "variant" to str("primary"), "child" to str("copyContent"), "action" to obj("event" to obj("name" to str(COPY_EVENT), "context" to context))),
         component("copyContent", "Row", "justify" to str("center"), "children" to ids(listOf("copyIcon", "copyLabel"))),
         component("copyIcon", "Icon", "name" to str("share")),
         component("copyLabel", "Text", "text" to str("Copy all")),

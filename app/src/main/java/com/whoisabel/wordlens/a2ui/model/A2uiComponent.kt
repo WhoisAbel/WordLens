@@ -33,7 +33,8 @@ sealed interface A2uiComponent {
         /** The data model path this field writes to, if its value is bound. */
         val boundPath: String? get() = (value as? Map<*, *>)?.get("path") as? String
     }
-    data class Button(override val id: String, val child: String, val action: Map<String, Any?>) : A2uiComponent
+    /** [variant] is "default", "primary" (main call to action) or "borderless" (link-like). */
+    data class Button(override val id: String, val child: String, val action: Map<String, Any?>, val variant: String) : A2uiComponent
 
     /** A type that is not in our catalog; the engine normally rejects these before we see them. */
     data class Unknown(override val id: String, val type: String) : A2uiComponent
@@ -51,7 +52,7 @@ sealed interface A2uiComponent {
                 "Text" -> Text(id, p["text"], p["variant"] as? String ?: "body")
                 "Icon" -> Icon(id, p["name"] as String)
                 "TextField" -> TextField(id, p["label"], p["value"])
-                "Button" -> Button(id, p["child"] as String, p.map("action"))
+                "Button" -> Button(id, p["child"] as String, p.map("action"), p["variant"] as? String ?: "default")
                 else -> Unknown(id, payload.type)
             }
         }

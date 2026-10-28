@@ -1,8 +1,11 @@
 package com.whoisabel.wordlens.ui
 
 import android.app.Application
+import android.content.ActivityNotFoundException
+import android.content.Intent
 import android.net.Uri
 import android.os.SystemClock
+import android.util.Log
 import androidx.a2ui.engine.model.A2uiCoreSurfaceModel
 import androidx.a2ui.model.protocol.A2uiClientEventMessage
 import androidx.lifecycle.AndroidViewModel
@@ -42,7 +45,15 @@ sealed interface ScanState {
  * Lives across rotation, so the scan result and the A2UI surface survive configuration changes.
  */
 class ScannerViewModel(app: Application) : AndroidViewModel(app) {
-    private val session = A2uiSession()
+    // openUrl (tel:, mailto:, https:) is handed to whichever app can handle it: dialer, mail, browser.
+    private val session = A2uiSession { url ->
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        try {
+            getApplication<Application>().startActivity(intent)
+        } catch (e: ActivityNotFoundException) {
+            Log.w("WordLens", "No app can open $url", e)
+        }
+    }
     private var scanJob: Job? = null
 
     private val _imageUri = MutableStateFlow<Uri?>(null)

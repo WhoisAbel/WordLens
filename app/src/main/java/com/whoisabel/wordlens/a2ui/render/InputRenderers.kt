@@ -3,12 +3,16 @@ package com.whoisabel.wordlens.a2ui.render
 import androidx.a2ui.engine.model.A2uiCoreSurfaceModel
 import androidx.a2ui.model.protocol.A2uiDataPath
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -32,11 +36,17 @@ internal fun TextFieldRenderer(surface: A2uiCoreSurfaceModel, field: A2uiCompone
     )
 }
 
-/** Hands the button's action to the engine, which resolves its context and emits an outbound event. */
+/**
+ * Hands the button's action to the engine. An `event` action becomes an outbound event;
+ * a `functionCall` action runs a catalog function (here: openUrl) on the client.
+ */
 @Composable
 internal fun ButtonRenderer(surface: A2uiCoreSurfaceModel, button: A2uiComponent.Button, modifier: Modifier) {
-    GradientButton(
-        onClick = { surface.dispatchAction(button.id, button.action) },
-        modifier = modifier.padding(top = 4.dp),
-    ) { RenderComponent(surface, button.child) }
+    val onClick = { surface.dispatchAction(button.id, button.action) }
+    val content: @Composable () -> Unit = { RenderComponent(surface, button.child) }
+    when (button.variant) {
+        "primary" -> GradientButton(onClick, modifier.padding(top = 4.dp)) { content() }
+        "borderless" -> TextButton(onClick, modifier) { content() }
+        else -> OutlinedButton(onClick, modifier.fillMaxWidth().height(52.dp), shape = CircleShape) { content() }
+    }
 }
