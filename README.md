@@ -6,6 +6,10 @@ WordLens is a small Android app. It reads text from a photo with **Google ML Kit
 Image → ML Kit → blocks & lines → A2UI messages → A2UI engine → Compose UI
 ```
 
+## App demo
+
+[▶ Watch WordLens in action (MP4, 30 seconds)](docs/media/wordlens-demo.mp4)
+
 ---
 
 ## Contents
