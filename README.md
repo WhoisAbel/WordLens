@@ -8,7 +8,9 @@ Image → ML Kit → blocks & lines → A2UI messages → A2UI engine → Compos
 
 ## App demo
 
-[▶ Watch WordLens in action (MP4, 30 seconds)](docs/media/wordlens-demo.mp4)
+▶ Watch WordLens in action
+
+https://github.com/user-attachments/assets/d2a6bd70-e381-4adf-910e-f880930681ef
 
 ---
 
